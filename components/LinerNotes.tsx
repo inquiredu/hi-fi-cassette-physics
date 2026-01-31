@@ -1,16 +1,18 @@
 import React from 'react';
-import { X, ExternalLink, Play } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Play } from 'lucide-react';
 import { JCardConfig, JCardTexture } from '../types';
 import { parseDuration, getStandardTapeLength } from '../utils/timeUtils';
 
 interface LinerNotesProps {
   config: JCardConfig;
+  isOpen: boolean;
   onClose: () => void;
   onEdit: () => void;
   onSeek: (progress: number) => void;
 }
 
-export const LinerNotes: React.FC<LinerNotesProps> = ({ config, onClose, onEdit, onSeek }) => {
+export const LinerNotes: React.FC<LinerNotesProps> = ({ config, isOpen, onClose, onEdit, onSeek }) => {
 
   const getTextureStyle = (tex: JCardTexture): React.CSSProperties => {
     switch (tex) {
@@ -73,121 +75,103 @@ export const LinerNotes: React.FC<LinerNotesProps> = ({ config, onClose, onEdit,
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/90 backdrop-blur-md">
-      <div className="min-h-full flex items-center justify-center p-4 md:p-8">
-        <div className="relative max-w-5xl w-full flex flex-col items-center">
-
-          {/* Controls */}
-          <div className="w-full flex justify-between mb-4 text-white sticky top-0 z-50 bg-black/50 p-2 rounded-lg backdrop-blur-sm">
-            <h2 className="text-xl font-bold font-mono tracking-widest uppercase">Liner Notes</h2>
-            <div className="flex gap-4">
-              <button onClick={onEdit} className="text-sm text-gray-400 hover:text-white underline">Edit J-Card</button>
-              <button onClick={onClose} className="hover:text-orange-500"><X /></button>
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed top-0 right-0 h-full w-full md:w-[400px] bg-gray-900/80 backdrop-blur-md z-50 shadow-2xl"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        >
+          <div className="relative h-full flex flex-col">
+            {/* Controls */}
+            <div className="w-full flex justify-between items-center p-4 text-white shrink-0">
+              <h2 className="text-lg font-bold">Liner Notes</h2>
+              <div className="flex gap-4">
+                <button onClick={onEdit} className="text-sm text-gray-400 hover:text-white underline">Edit J-Card</button>
+                <button onClick={onClose} className="hover:text-orange-500"><X /></button>
+              </div>
             </div>
-          </div>
 
-          {/* The Unfolded J-Card Layout */}
-          <div className="flex flex-col md:flex-row shadow-2xl overflow-hidden rounded-sm w-full md:w-auto" style={{ minHeight: '500px' }}>
-
-            {/* PANEL 1: FRONT ART (Cover) */}
-            <div
-              className="relative w-full md:w-[320px] h-[500px] overflow-hidden border-b md:border-b-0 md:border-r border-black/10 shrink-0"
-              style={getTextureStyle(config.textureId)}
-            >
-              {/* Render Layers (Read-Only) */}
-              {config.layers.map((layer) => (
-                <div
-                  key={layer.id}
-                  className="absolute"
-                  style={{
-                    left: 0,
-                    top: 0,
-                    transform: `translate3d(${layer.x}px, ${layer.y}px, 0) rotate(${layer.rotation}deg) scale(${layer.scale})`,
-                    zIndex: layer.zIndex
-                  }}
-                >
-                  {layer.type === 'sticker' ? (
-                    renderStickerContent(layer.content)
-                  ) : (
+            {/* The Unfolded J-Card Layout */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="p-4">
+                    {/* PANEL 1: FRONT ART (Cover) */}
                     <div
-                      className={`${layer.font === 'pen' ? 'font-pen text-5xl leading-none' : 'font-marker text-3xl'}`}
-                      style={{ color: layer.color }}
+                      className="relative w-full h-[300px] overflow-hidden border-b md:border-b-0 md:border-r border-black/10 shrink-0"
+                      style={getTextureStyle(config.textureId)}
                     >
-                      <span>{layer.content}</span>
+                      {/* Render Layers (Read-Only) */}
+                      {config.layers.map((layer) => (
+                        <div
+                          key={layer.id}
+                          className="absolute"
+                          style={{
+                            left: 0,
+                            top: 0,
+                            transform: `translate3d(${layer.x}px, ${layer.y}px, 0) rotate(${layer.rotation}deg) scale(${layer.scale})`,
+                            zIndex: layer.zIndex
+                          }}
+                        >
+                          {layer.type === 'sticker' ? (
+                            renderStickerContent(layer.content)
+                          ) : (
+                            <div
+                              className={`${layer.font === 'pen' ? 'font-pen text-5xl leading-none' : 'font-marker text-3xl'}`}
+                              style={{ color: layer.color }}
+                            >
+                              <span>{layer.content}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
 
-            {/* PANEL 2: SPINE */}
-            <div
-              className="relative w-full md:w-[50px] h-[50px] md:h-[500px] border-b md:border-b-0 md:border-r border-black/10 flex items-center justify-center shrink-0"
-              style={getTextureStyle(config.textureId)}
-            >
-              <span className="transform md:-rotate-90 whitespace-nowrap font-marker text-xl opacity-50 tracking-widest uppercase">
-                {/* Just use first text layer as mock title */}
-                {config.layers.find(l => l.type === 'text')?.content || 'MIXTAPE'}
-              </span>
-            </div>
-
-            {/* PANEL 3: FLAP (Side A) */}
-            <div
-              className="relative w-full md:w-[300px] h-auto md:h-[500px] border-b md:border-b-0 md:border-r border-black/10 p-8 shrink-0 overflow-y-auto"
-              style={getTextureStyle(config.textureId)}
-            >
-              <h3 className="font-marker text-3xl mb-6 border-b-2 border-black/80 pb-2" style={tracklistStyle}>Side A</h3>
-              <ul className={`${getFontClass()} text-2xl space-y-3`} style={tracklistStyle}>
-                {config.tracklist.sideA.length === 0 && (
-                  <li className="opacity-30 italic">No tracks listed...</li>
-                )}
-                {config.tracklist.sideA.map((track, i) => (
-                  <li key={track.id} className="group flex gap-3 items-start">
-                    <span className="opacity-50 font-sans text-sm pt-2 w-6 shrink-0">A{i + 1}</span>
-                    <button
-                      onClick={() => handleTrackClick(i, 'sideA')}
-                      className="text-left hover:underline decoration-2 underline-offset-2 flex-1 flex items-center gap-2"
+                    {/* TRACKLIST */}
+                    <div
+                      className="relative w-full p-4 shrink-0"
+                      style={getTextureStyle(config.textureId)}
                     >
-                      {track.title}
-                      <Play size={12} className="opacity-0 group-hover:opacity-100 transition-opacity fill-current" />
-                    </button>
-                    <span className="opacity-40 text-sm pt-2 whitespace-nowrap">{track.duration}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                      <h3 className="font-marker text-2xl mb-4 border-b-2 border-black/80 pb-2" style={tracklistStyle}>Side A</h3>
+                      <ul className={`${getFontClass()} text-xl space-y-2`} style={tracklistStyle}>
+                        {config.tracklist.sideA.length === 0 && (
+                          <li className="opacity-30 italic">No tracks listed...</li>
+                        )}
+                        {config.tracklist.sideA.map((track, i) => (
+                          <li key={track.id} className="group flex gap-3 items-start">
+                            <span className="opacity-50 font-sans text-xs pt-2 w-5 shrink-0">A{i + 1}</span>
+                            <button
+                              onClick={() => handleTrackClick(i, 'sideA')}
+                              className="text-left hover:underline decoration-2 underline-offset-2 flex-1 flex items-center gap-2"
+                            >
+                              {track.title}
+                              <Play size={10} className="opacity-0 group-hover:opacity-100 transition-opacity fill-current" />
+                            </button>
+                            <span className="opacity-40 text-xs pt-2 whitespace-nowrap">{track.duration}</span>
+                          </li>
+                        ))}
+                      </ul>
 
-            {/* PANEL 4: EXTENDED FLAP (Side B) */}
-            <div
-              className="relative w-full md:w-[300px] h-auto md:h-[500px] p-8 shrink-0 overflow-y-auto"
-              style={getTextureStyle(config.textureId)}
-            >
-              <h3 className="font-marker text-3xl mb-6 border-b-2 border-black/80 pb-2" style={tracklistStyle}>Side B</h3>
-              <ul className={`${getFontClass()} text-2xl space-y-3`} style={tracklistStyle}>
-                {config.tracklist.sideB.length === 0 && (
-                  <li className="opacity-30 italic">No tracks listed...</li>
-                )}
-                {config.tracklist.sideB.map((track, i) => (
-                  <li key={track.id} className="flex gap-3 items-start opacity-70">
-                    <span className="opacity-50 font-sans text-sm pt-2 w-6 shrink-0">B{i + 1}</span>
-                    <span className="flex-1">{track.title}</span>
-                    <span className="opacity-40 text-sm pt-2 whitespace-nowrap">{track.duration}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {config.spotifyUrl && (
-                <div className="mt-12 pt-8 border-t border-black/10">
-                  <a href={config.spotifyUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm font-bold opacity-60 hover:opacity-100 hover:text-green-600 transition-all">
-                    <ExternalLink size={16} /> Listen on Spotify
-                  </a>
+                        <h3 className="font-marker text-2xl mt-6 mb-4 border-b-2 border-black/80 pb-2" style={tracklistStyle}>Side B</h3>
+                        <ul className={`${getFontClass()} text-xl space-y-2`} style={tracklistStyle}>
+                            {config.tracklist.sideB.length === 0 && (
+                            <li className="opacity-30 italic">No tracks listed...</li>
+                            )}
+                            {config.tracklist.sideB.map((track, i) => (
+                            <li key={track.id} className="flex gap-3 items-start opacity-70">
+                                <span className="opacity-50 font-sans text-xs pt-2 w-5 shrink-0">B{i + 1}</span>
+                                <span className="flex-1">{track.title}</span>
+                                <span className="opacity-40 text-xs pt-2 whitespace-nowrap">{track.duration}</span>
+                            </li>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
-              )}
             </div>
-
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

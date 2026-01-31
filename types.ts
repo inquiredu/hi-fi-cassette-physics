@@ -18,7 +18,9 @@ export interface JCardLayer {
 export interface Track {
   id: string;
   title: string;
+  artist?: string;
   duration: string; // "MM:SS" format
+  url?: string;
 }
 
 export interface Tracklist {
@@ -29,7 +31,6 @@ export interface Tracklist {
 export interface JCardConfig {
   textureId: JCardTexture;
   layers: JCardLayer[];
-  spotifyUrl?: string; // URL to the Spotify playlist
   tracklist: Tracklist;
   tracklistFont?: 'marker' | 'pen' | 'sans';
   tracklistColor?: string;
