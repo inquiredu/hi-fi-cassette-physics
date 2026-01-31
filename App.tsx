@@ -4,8 +4,9 @@ import { JCardEditor } from './components/JCardEditor';
 import { LinerNotes } from './components/LinerNotes';
 import { Auth } from './components/Auth';
 import { SpotifyDrawer } from './components/SpotifyDrawer';
+import { AddMusicPrompt, AddMusicFAB } from './components/AddMusicPrompt';
 import { JCardConfig, TransportState, TapeSide } from './types';
-import { Share2, Check, Save, User, LogOut, Disc } from 'lucide-react';
+import { Share2, Check, Save, User, LogOut, Disc, Music } from 'lucide-react';
 import { encodeConfig, decodeConfig } from './utils/shareUtils';
 import { parseDuration, getStandardTapeLength } from './utils/timeUtils';
 import { supabase } from './utils/supabaseClient';
@@ -76,6 +77,7 @@ export default function App() {
 
   // Spotify drawer state
   const [spotifyDrawerOpen, setSpotifyDrawerOpen] = useState(false);
+  const [showAddMusic, setShowAddMusic] = useState(false);
   const hasSpotifyPlaylist = jCardConfig.spotifyUrl && isSpotifyPlaylistUrl(jCardConfig.spotifyUrl);
 
   // Derived values
@@ -329,13 +331,28 @@ export default function App() {
       </div>
 
       {/* Spotify Drawer - slides up from bottom */}
-      {hasSpotifyPlaylist && (
+      {hasSpotifyPlaylist ? (
         <SpotifyDrawer
           playlistUrl={jCardConfig.spotifyUrl}
           isOpen={spotifyDrawerOpen}
           onToggle={() => setSpotifyDrawerOpen(!spotifyDrawerOpen)}
         />
+      ) : (
+        /* Show "Add Music" button when no playlist */
+        <AddMusicFAB onClick={() => setShowAddMusic(true)} />
       )}
+
+      {/* Add Music Modal */}
+      <AddMusicPrompt
+        isOpen={showAddMusic}
+        onClose={() => setShowAddMusic(false)}
+        onSubmit={(url) => {
+          setJCardConfig(prev => ({ ...prev, spotifyUrl: url }));
+          setShowAddMusic(false);
+          // Auto-open the drawer to show the playlist
+          setTimeout(() => setSpotifyDrawerOpen(true), 500);
+        }}
+      />
 
       {/* === MODALS === */}
 
