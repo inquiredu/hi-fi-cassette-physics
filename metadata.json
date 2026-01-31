@@ -1,0 +1,5 @@
+{
+  "name": "Hi-Fi Cassette Physics",
+  "description": "A physics-accurate simulation of a cassette tape with Constant Linear Velocity (CLV) mechanics.",
+  "requestFramePermissions": []
+}

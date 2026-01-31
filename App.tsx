@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { UnifiedDeck } from './components/UnifiedDeck';
 import { JCardEditor } from './components/JCardEditor';
 import { LinerNotes } from './components/LinerNotes';
@@ -79,6 +79,14 @@ export default function App() {
   const [spotifyDrawerOpen, setSpotifyDrawerOpen] = useState(false);
   const [showAddMusic, setShowAddMusic] = useState(false);
   const hasSpotifyPlaylist = jCardConfig.spotifyUrl && isSpotifyPlaylistUrl(jCardConfig.spotifyUrl);
+
+  // Send command to Spotify iframe
+  const sendSpotifyCommand = useCallback((command: 'toggle' | 'pause') => {
+    const iframe = document.querySelector('iframe[src*="spotify.com/embed"]') as HTMLIFrameElement;
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage({ command }, '*');
+    }
+  }, []);
 
   // Derived values
   const currentProgress = transport.currentSide === 'A'
@@ -168,29 +176,72 @@ export default function App() {
     return () => cancelAnimationFrame(animationFrame);
   }, [jCardConfig.tracklist, tapeDurationMinutes]);
 
-  // Transport handlers
-  const handlePlay = () => setTransport(prev => ({ ...prev, mode: 'playing' }));
-  const handlePause = () => setTransport(prev => ({ ...prev, mode: 'paused' }));
-  const handleStop = () => setTransport(prev => ({
-    ...prev,
-    mode: 'stopped',
-    [prev.currentSide === 'A' ? 'sideAProgress' : 'sideBProgress']: 0
-  }));
-  const handleRewindStart = () => setTransport(prev => ({ ...prev, mode: 'rewinding' }));
+  // Transport handlers - now also control Spotify!
+  const handlePlay = () => {
+    setTransport(prev => ({ ...prev, mode: 'playing' }));
+    // Toggle Spotify playback (if paused, will play)
+    if (hasSpotifyPlaylist) {
+      sendSpotifyCommand('toggle');
+    }
+  };
+
+  const handlePause = () => {
+    setTransport(prev => ({ ...prev, mode: 'paused' }));
+    // Pause Spotify
+    if (hasSpotifyPlaylist) {
+      sendSpotifyCommand('pause');
+    }
+  };
+
+  const handleStop = () => {
+    setTransport(prev => ({
+      ...prev,
+      mode: 'stopped',
+      [prev.currentSide === 'A' ? 'sideAProgress' : 'sideBProgress']: 0
+    }));
+    // Pause Spotify on stop
+    if (hasSpotifyPlaylist) {
+      sendSpotifyCommand('pause');
+    }
+  };
+
+  const handleRewindStart = () => {
+    setTransport(prev => ({ ...prev, mode: 'rewinding' }));
+    // Pause during rewind
+    if (hasSpotifyPlaylist) {
+      sendSpotifyCommand('pause');
+    }
+  };
+
   const handleRewindEnd = () => setTransport(prev => ({
     ...prev,
     mode: prev.mode === 'rewinding' ? 'stopped' : prev.mode
   }));
-  const handleFastForwardStart = () => setTransport(prev => ({ ...prev, mode: 'fast_forwarding' }));
+
+  const handleFastForwardStart = () => {
+    setTransport(prev => ({ ...prev, mode: 'fast_forwarding' }));
+    // Pause during fast forward
+    if (hasSpotifyPlaylist) {
+      sendSpotifyCommand('pause');
+    }
+  };
+
   const handleFastForwardEnd = () => setTransport(prev => ({
     ...prev,
     mode: prev.mode === 'fast_forwarding' ? 'stopped' : prev.mode
   }));
-  const handleFlip = () => setTransport(prev => ({
-    ...prev,
-    mode: 'stopped',
-    currentSide: prev.currentSide === 'A' ? 'B' : 'A',
-  }));
+
+  const handleFlip = () => {
+    setTransport(prev => ({
+      ...prev,
+      mode: 'stopped',
+      currentSide: prev.currentSide === 'A' ? 'B' : 'A',
+    }));
+    // Pause on flip
+    if (hasSpotifyPlaylist) {
+      sendSpotifyCommand('pause');
+    }
+  };
 
   // Share handler
   const handleShare = async () => {
@@ -330,12 +381,13 @@ export default function App() {
         />
       </div>
 
-      {/* Spotify Drawer - slides up from bottom */}
+      {/* Spotify Drawer - contains the actual player iframe */}
       {hasSpotifyPlaylist ? (
         <SpotifyDrawer
           playlistUrl={jCardConfig.spotifyUrl}
           isOpen={spotifyDrawerOpen}
           onToggle={() => setSpotifyDrawerOpen(!spotifyDrawerOpen)}
+          isPlaying={transport.mode === 'playing'}
         />
       ) : (
         /* Show "Add Music" button when no playlist */

@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { Music, ChevronDown, ExternalLink } from 'lucide-react';
+import { Music, ChevronDown, ExternalLink, Play, Pause } from 'lucide-react';
 import { extractSpotifyPlaylistId } from '../utils/spotifyUtils';
+
+export interface SpotifyDrawerHandle {
+  toggle: () => void;
+  pause: () => void;
+}
 
 interface SpotifyDrawerProps {
   playlistUrl?: string;
   isOpen: boolean;
   onToggle: () => void;
+  isPlaying?: boolean;
 }
 
 const drawerVariants = {
@@ -28,8 +34,10 @@ export const SpotifyDrawer: React.FC<SpotifyDrawerProps> = ({
   playlistUrl,
   isOpen,
   onToggle,
+  isPlaying = false,
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const playlistId = playlistUrl ? extractSpotifyPlaylistId(playlistUrl) : null;
 
   // Handle swipe gesture
@@ -46,6 +54,7 @@ export const SpotifyDrawer: React.FC<SpotifyDrawerProps> = ({
     return null;
   }
 
+  // Compact embed when closed, full when open
   const embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`;
 
   return (
@@ -75,13 +84,23 @@ export const SpotifyDrawer: React.FC<SpotifyDrawerProps> = ({
         onClick={onToggle}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#1DB954] flex items-center justify-center shadow-lg shadow-[#1DB954]/20">
-            <Music size={20} className="text-white" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transition-all ${
+            isPlaying
+              ? 'bg-[#1DB954] shadow-[#1DB954]/30 animate-pulse'
+              : 'bg-gray-700'
+          }`}>
+            {isPlaying ? (
+              <Pause size={20} className="text-white" />
+            ) : (
+              <Play size={20} className="text-white ml-0.5" />
+            )}
           </div>
           <div>
-            <h3 className="text-white font-bold text-sm">Listen on Spotify</h3>
+            <h3 className="text-white font-bold text-sm">
+              {isPlaying ? 'Now Playing' : 'Spotify Playlist'}
+            </h3>
             <p className="text-[10px] text-gray-400">
-              {isOpen ? 'Tap to minimize' : 'Tap to play music'}
+              {isOpen ? 'Tap to minimize' : 'Tap for playlist'}
             </p>
           </div>
         </div>
@@ -104,15 +123,17 @@ export const SpotifyDrawer: React.FC<SpotifyDrawerProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Spotify Embed */}
+            {/* Spotify Embed - THIS IS THE PLAYER */}
             <div className="relative">
               <iframe
+                ref={iframeRef}
+                id="spotify-embed-player"
                 src={embedUrl}
                 width="100%"
                 height="352"
                 frameBorder="0"
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
+                loading="eager"
                 className="rounded-xl"
                 onLoad={() => setIsLoaded(true)}
               />
