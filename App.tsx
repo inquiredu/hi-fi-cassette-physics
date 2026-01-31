@@ -478,6 +478,8 @@ export default function App() {
             }));
             setShowLinerNotes(false);
           }}
+          onFlip={handleFlip}
+          currentSide={transport.currentSide}
         />
     </div>
   );

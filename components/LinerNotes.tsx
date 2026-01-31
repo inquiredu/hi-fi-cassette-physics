@@ -10,9 +10,11 @@ interface LinerNotesProps {
   onClose: () => void;
   onEdit: () => void;
   onSeek: (progress: number) => void;
+  onFlip: () => void;
+  currentSide: 'A' | 'B';
 }
 
-export const LinerNotes: React.FC<LinerNotesProps> = ({ config, isOpen, onClose, onEdit, onSeek }) => {
+export const LinerNotes: React.FC<LinerNotesProps> = ({ config, isOpen, onClose, onEdit, onSeek, onFlip, currentSide }) => {
 
   const getTextureStyle = (tex: JCardTexture): React.CSSProperties => {
     switch (tex) {
@@ -44,15 +46,25 @@ export const LinerNotes: React.FC<LinerNotesProps> = ({ config, isOpen, onClose,
 
   // Calculate tape physics for seeking
   const sideADuration = config.tracklist.sideA.reduce((acc, track) => acc + parseDuration(track.duration || '0:00'), 0);
-  const tapeDurationMinutes = getStandardTapeLength(sideADuration);
-  const tapeDurationSeconds = tapeDurationMinutes * 60;
+  const sideBDuration = config.tracklist.sideB.reduce((acc, track) => acc + parseDuration(track.duration || '0:00'), 0);
+  const sideATapeMinutes = getStandardTapeLength(sideADuration);
+  const sideBTapeMinutes = getStandardTapeLength(sideBDuration);
+  const sideATapeSeconds = sideATapeMinutes * 60;
+  const sideBTapeSeconds = sideBTapeMinutes * 60;
 
   const handleTrackClick = (trackIndex: number, side: 'sideA' | 'sideB') => {
-    if (side === 'sideB') return; // TODO: Handle Side B seeking (requires flip)
+    const targetSide = side === 'sideA' ? 'A' : 'B';
+    const tracks = side === 'sideA' ? config.tracklist.sideA : config.tracklist.sideB;
+    const tapeDurationSeconds = side === 'sideA' ? sideATapeSeconds : sideBTapeSeconds;
+
+    // If we need to flip to the other side, do so first
+    if (currentSide !== targetSide) {
+      onFlip();
+    }
 
     let accumulatedSeconds = 0;
     for (let i = 0; i < trackIndex; i++) {
-      accumulatedSeconds += parseDuration(config.tracklist.sideA[i].duration || '0:00');
+      accumulatedSeconds += parseDuration(tracks[i].duration || '0:00');
     }
 
     // Add a small buffer (e.g. 2 seconds) so we don't start exactly at the very split second
@@ -159,9 +171,15 @@ export const LinerNotes: React.FC<LinerNotesProps> = ({ config, isOpen, onClose,
                             <li className="opacity-30 italic">No tracks listed...</li>
                             )}
                             {config.tracklist.sideB.map((track, i) => (
-                            <li key={track.id} className="flex gap-3 items-start opacity-70">
+                            <li key={track.id} className="group flex gap-3 items-start">
                                 <span className="opacity-50 font-sans text-xs pt-2 w-5 shrink-0">B{i + 1}</span>
-                                <span className="flex-1">{track.title}</span>
+                                <button
+                                  onClick={() => handleTrackClick(i, 'sideB')}
+                                  className="text-left hover:underline decoration-2 underline-offset-2 flex-1 flex items-center gap-2"
+                                >
+                                  {track.title}
+                                  <Play size={10} className="opacity-0 group-hover:opacity-100 transition-opacity fill-current" />
+                                </button>
                                 <span className="opacity-40 text-xs pt-2 whitespace-nowrap">{track.duration}</span>
                             </li>
                             ))}
