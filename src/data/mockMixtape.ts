@@ -9,6 +9,7 @@ export const mockMixtape: Mixtape = {
       id: 't1',
       title: 'Acoustic Breeze',
       artist: 'Benjamin Tissot',
+      side: 'A',
       duration: 145,
       source: {
         type: 'url',
@@ -19,6 +20,7 @@ export const mockMixtape: Mixtape = {
       id: 't2',
       title: 'Sunny',
       artist: 'Benjamin Tissot',
+      side: 'A',
       duration: 143,
       source: {
         type: 'url',
@@ -29,6 +31,7 @@ export const mockMixtape: Mixtape = {
       id: 't3',
       title: 'Ukulele',
       artist: 'Benjamin Tissot',
+      side: 'B',
       duration: 146,
       source: {
         type: 'url',
@@ -38,15 +41,17 @@ export const mockMixtape: Mixtape = {
   ],
   linerNotes: {
     title: 'Summer Vibes',
-    artist: 'Various Artists',
-    dedication: 'For lazy afternoons and good company.',
-    notes: 'A collection of chill acoustic tracks to set the mood. Perfect for backyard hangs, road trips, or just unwinding after a long day.',
+    artist: 'Sean',
+    notes: 'For lazy afternoons and good company.',
+    message: 'Made this while thinking about those late night drives testing out the tape deck. Flip the tape when you get to the beach.'
   },
   theme: {
     preset: 'sunset',
-    tapeColor: '#2a2a2a',
+    tapeColor: '#1a1a1a',
     labelColor: '#fef3c7',
     accentColor: '#f59e0b',
+    playerTemplate: 'boombox',
+    jCardTheme: 'handwritten'
   },
   createdAt: new Date().toISOString(),
 };

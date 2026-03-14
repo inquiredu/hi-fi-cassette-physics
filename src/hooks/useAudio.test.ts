@@ -4,8 +4,8 @@ import { useAudio } from './useAudio';
 import type { Track } from '../types';
 
 const mockTracks: Track[] = [
-  { id: '1', title: 'Track One', duration: 100, source: { type: 'url', url: '1.mp3' } },
-  { id: '2', title: 'Track Two', duration: 200, source: { type: 'url', url: '2.mp3' } },
+  { id: '1', title: 'Track One', artist: 'Artist', side: 'A', duration: 100, source: { type: 'url', url: '1.mp3' } },
+  { id: '2', title: 'Track Two', artist: 'Artist', side: 'B', duration: 200, source: { type: 'url', url: '2.mp3' } },
 ];
 
 describe('useAudio', () => {

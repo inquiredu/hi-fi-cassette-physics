@@ -8,6 +8,7 @@ const initialState: AudioState = {
   progress: 0,
   duration: 0,
   currentTime: 0,
+  needsFlip: false,
 };
 
 export function useAudio(tracks: Track[]) {
@@ -59,6 +60,10 @@ export function useAudio(tracks: Track[]) {
     controllerRef.current?.goToTrack(index);
   }, []);
 
+  const flipTape = useCallback(() => {
+    controllerRef.current?.flipTape();
+  }, []);
+
   return {
     state,
     currentTrack: tracks[state.currentTrackIndex] || null,
@@ -70,5 +75,6 @@ export function useAudio(tracks: Track[]) {
     next,
     prev,
     goToTrack,
+    flipTape,
   };
 }

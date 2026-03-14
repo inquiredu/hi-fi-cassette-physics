@@ -4,13 +4,15 @@ import { useAudio } from '../hooks/useAudio';
 import { encodeMixtape } from '../utils/serialization';
 import { PlayerFrame } from '../components/templates/PlayerFrame';
 import { CassetteDeck } from '../components/CassetteDeck';
-import { Copy, Check, Sparkles, Loader2 } from 'lucide-react';
+import { Copy, Check, Sparkles, Loader2, Disc3, BookOpen } from 'lucide-react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
+import { JCard } from '../components/JCard';
 
 export function BuilderPage() {
   const { draft, updateTheme, updateLinerNotes } = useBuilderStore();
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState<'tape' | 'case'>('case');
   const [copied, setCopied] = useState(false);
   const [shareLink, setShareLink] = useState('');
   
@@ -25,7 +27,7 @@ export function BuilderPage() {
     setShareLink(`${window.location.origin}/mixtape/${encoded}`);
   }, [draft]);
 
-  const { state, currentTrack, toggle, prev, next, seekToPercent } = useAudio(draft.tracks);
+  const { state, currentTrack, toggle, prev, next, seekToPercent, flipTape } = useAudio(draft.tracks);
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareLink);
@@ -68,26 +70,53 @@ export function BuilderPage() {
         Takes full width on mobile, left pane on desktop.
       */}
       <div className="flex-1 flex flex-col items-center justify-center p-4 min-h-[50vh] relative">
-        <div className="w-full max-w-2xl flex items-center justify-center">
-          <PlayerFrame template={draft.theme.playerTemplate}>
-            <CassetteDeck
-              title={draft.linerNotes.title || 'Untitled'}
-              progress={state.progress}
-              transportMode={state.isPlaying ? 'playing' : 'paused'}
-              shellColor={draft.theme.tapeColor}
-              labelColor={draft.theme.labelColor}
-              isPlaying={state.isPlaying}
-              currentTrack={currentTrack}
-              trackIndex={state.currentTrackIndex}
-              totalTracks={draft.tracks.length}
-              currentTime={state.currentTime}
-              duration={state.duration}
-              onPlayPause={toggle}
-              onPrev={prev}
-              onNext={next}
-              onSeek={seekToPercent}
+        {/* View Toggle */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center bg-neutral-900 rounded-full p-1 border border-neutral-800 z-10">
+          <button 
+            onClick={() => setPreviewMode('tape')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${previewMode === 'tape' ? 'bg-purple-600 text-white' : 'text-neutral-400 hover:text-white'}`}
+          >
+            <Disc3 size={16} /> Tape
+          </button>
+          <button 
+            onClick={() => setPreviewMode('case')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-all ${previewMode === 'case' ? 'bg-purple-600 text-white' : 'text-neutral-400 hover:text-white'}`}
+          >
+            <BookOpen size={16} /> J-Card
+          </button>
+        </div>
+
+        <div className="w-full max-w-2xl flex items-center justify-center mt-6">
+          {previewMode === 'tape' ? (
+            <PlayerFrame template={draft.theme.playerTemplate}>
+              <CassetteDeck
+                title={draft.linerNotes.title || 'Untitled'}
+                progress={state.progress}
+                transportMode={state.isPlaying ? 'playing' : 'paused'}
+                shellColor={draft.theme.tapeColor}
+                labelColor={draft.theme.labelColor}
+                isPlaying={state.isPlaying}
+                currentTrack={currentTrack}
+                trackIndex={state.currentTrackIndex}
+                totalTracks={draft.tracks.length}
+                currentTime={state.currentTime}
+                duration={state.duration}
+                onPlayPause={toggle}
+                onPrev={prev}
+                onNext={next}
+                onSeek={seekToPercent}
+                needsFlip={state.needsFlip}
+                onFlipTape={flipTape}
+              />
+            </PlayerFrame>
+          ) : (
+            <JCard 
+              theme={draft.theme} 
+              linerNotes={draft.linerNotes} 
+              tracks={draft.tracks} 
+              isOpen={false} 
             />
-          </PlayerFrame>
+          )}
         </div>
 
         {/* Mobile toggle button for controls */}
@@ -170,6 +199,15 @@ export function BuilderPage() {
                 className="w-full bg-neutral-800 border-none rounded-lg p-3 text-white focus:ring-2 focus:ring-white"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-400 mb-1">Liner Notes / Message</label>
+              <textarea 
+                value={draft.linerNotes.message || ''}
+                onChange={(e) => updateLinerNotes({ message: e.target.value })}
+                placeholder="Write a dedication or tape explainer..."
+                className="w-full bg-neutral-800 border-none rounded-lg p-3 text-white focus:ring-2 focus:ring-white h-24 resize-none"
+              />
+            </div>
           </div>
 
           {/* Theme & Design */}
@@ -185,6 +223,25 @@ export function BuilderPage() {
                     onClick={() => updateTheme({ playerTemplate: tmpl })}
                     className={`p-2 rounded-lg text-sm font-medium capitalize transition-colors ${
                       draft.theme.playerTemplate === tmpl 
+                        ? 'bg-white text-black' 
+                        : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                    }`}
+                  >
+                    {tmpl}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-neutral-400 mb-2">J-Card Design</label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['handwritten', 'collage', 'ransom', 'minimal'] as const).map((tmpl) => (
+                  <button
+                    key={tmpl}
+                    onClick={() => updateTheme({ jCardTheme: tmpl })}
+                    className={`p-2 rounded-lg text-sm font-medium capitalize transition-colors ${
+                      draft.theme.jCardTheme === tmpl 
                         ? 'bg-white text-black' 
                         : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                     }`}
@@ -227,11 +284,24 @@ export function BuilderPage() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-white border-b border-neutral-800 pb-2">Tracks ({draft.tracks.length})</h3>
             <div className="space-y-2">
-              {draft.tracks.map((track) => (
+              {draft.tracks.map((track, trackIndex) => (
                 <div key={track.id} className="bg-neutral-800/50 p-3 rounded-lg flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white">{track.title}</p>
-                    <p className="text-xs text-neutral-500">{track.artist}</p>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => {
+                        const newTracks = [...draft.tracks];
+                        newTracks[trackIndex] = { ...track, side: track.side === 'A' ? 'B' : 'A' };
+                        useBuilderStore.setState((state) => ({ draft: { ...state.draft, tracks: newTracks } }));
+                      }}
+                      className="px-2 py-1 bg-neutral-700 hover:bg-neutral-600 rounded text-xs font-bold w-10 text-center uppercase text-white transition-colors"
+                      title="Click to flip track side"
+                    >
+                      {track.side}
+                    </button>
+                    <div>
+                      <p className="text-sm font-medium text-white">{track.title}</p>
+                      <p className="text-xs text-neutral-500">{track.artist}</p>
+                    </div>
                   </div>
                   <span className="text-xs text-neutral-500">{Math.floor(track.duration/60)}:{(track.duration%60).toString().padStart(2,'0')}</span>
                 </div>

@@ -24,6 +24,8 @@ interface CassetteDeckProps {
   onPrev: () => void;
   onNext: () => void;
   onSeek: (percent: number) => void;
+  needsFlip?: boolean;
+  onFlipTape?: () => void;
 }
 
 export function CassetteDeck({
@@ -43,6 +45,8 @@ export function CassetteDeck({
   onPrev,
   onNext,
   onSeek,
+  needsFlip,
+  onFlipTape,
 }: CassetteDeckProps) {
   return (
     <div className="flex flex-col items-center">
@@ -69,6 +73,8 @@ export function CassetteDeck({
         onNext={onNext}
         canPrev={trackIndex > 0 || progress > 0.05}
         canNext={trackIndex < totalTracks - 1}
+        needsFlip={needsFlip}
+        onFlipTape={onFlipTape}
       />
     </div>
   );
